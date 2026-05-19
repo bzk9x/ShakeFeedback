@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Permissions required for shake feedback functionality -->
+    
+    <!-- Required to access the accelerometer sensor -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
+    <!-- Required for haptic vibration feedback -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+</manifest>
