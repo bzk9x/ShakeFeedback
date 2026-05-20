@@ -5,28 +5,26 @@ package com.bzk9x.shakefeedback.config
  * Provides sensible defaults but allows complete customization via builder pattern.
  */
 data class ShakeFeedbackConfig(
-    // ========== Mechanical & Math Controls ==========
     /**
      * Threshold acceleration in m/s² required to trigger a shake.
-     * Default 13.0f filters out walking/running/dropping the phone.
-     * Requires an active, deliberate wrist snap.
+     * Default 30.0f is the optimal sweet spot for reliable detection.
+     * Range: 3-20 m/s² (3=very sensitive, 20=very strict)
      */
-    val shakeThreshold: Float = 13.0f,
+    val shakeThreshold: Float = 30.0f,
 
     /**
      * Time window (in milliseconds) during which acceleration spikes must occur
      * to count as a single shake. Prevents false positives from single jolts.
-     * Default 400ms allows for a complete back-and-forth human shake cycle.
+     * Default 250ms allows for faster detection.
      */
-    val shakeDurationThreshold: Long = 400L,
+    val shakeDurationThreshold: Long = 250L,
 
     /**
      * Cool-down period (in milliseconds) after a shake is detected.
      * During this time, the sensor completely ignores new movements.
-     * Default 1000ms prevents the user's hand bringing the phone back
-     * to their face from triggering a second event.
+     * Default 500ms allows multiple shakes in quick succession.
      */
-    val debounceInterval: Long = 1000L,
+    val debounceInterval: Long = 500L,
 
     // ========== Behavior & Feedback Controls ==========
     /**
@@ -50,25 +48,25 @@ data class ShakeFeedbackConfig(
     /**
      * Smoothing constant for Exponential Moving Average filter (0.0 to 1.0).
      * Higher values = more smoothing but delayed response.
-     * Default 0.9 provides excellent noise reduction while maintaining responsiveness.
+     * Default 0.7 is more responsive to actual shake events.
      */
-    val smoothingFactor: Float = 0.9f,
+    val smoothingFactor: Float = 0.7f,
 
     /**
      * Minimum number of acceleration threshold crossings within the duration
-     * window to validate a shake. Default 2 prevents single-jolt false positives.
+     * window to validate a shake. Default 1 makes detection very responsive.
      */
-    val minimumThresholdCrossings: Int = 2
+    val minimumThresholdCrossings: Int = 1
 ) {
     class Builder {
-        private var shakeThreshold: Float = 13.0f
-        private var shakeDurationThreshold: Long = 400L
-        private var debounceInterval: Long = 1000L
+        private var shakeThreshold: Float = 30.0f
+        private var shakeDurationThreshold: Long = 250L
+        private var debounceInterval: Long = 500L
         private var isHapticFeedbackEnabled: Boolean = true
         private var hapticPattern: HapticProfile = HapticProfile.DOUBLE_TAP
         private var autoCaptureScreenshot: Boolean = true
-        private var smoothingFactor: Float = 0.9f
-        private var minimumThresholdCrossings: Int = 2
+        private var smoothingFactor: Float = 0.7f
+        private var minimumThresholdCrossings: Int = 1
 
         fun shakeThreshold(threshold: Float) = apply { this.shakeThreshold = threshold }
         fun shakeDurationThreshold(duration: Long) = apply { this.shakeDurationThreshold = duration }

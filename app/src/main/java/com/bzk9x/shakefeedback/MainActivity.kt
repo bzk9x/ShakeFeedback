@@ -1,14 +1,21 @@
-package com.bzk9x.shakefeedback
+package com.bzk9x.testapp
 
-import android.app.Activity
+import android.annotation.SuppressLint
+import android.app.AlertDialog
 import android.os.Bundle
-import android.view.Gravity
 import android.widget.Button
+import android.widget.CheckBox
 import android.widget.FrameLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
+import android.widget.Spinner
+import android.widget.ArrayAdapter
 import android.widget.TextView
 import android.widget.LinearLayout
+import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.toColorInt
+import com.bzk9x.shakefeedback.ShakeFeedback
 import com.bzk9x.shakefeedback.config.ShakeFeedbackConfig
 import com.bzk9x.shakefeedback.config.HapticProfile
 import com.bzk9x.shakefeedback.data.ShakeEvent
@@ -16,40 +23,55 @@ import com.bzk9x.shakefeedback.orchestration.ShakeFeedbackManager
 import com.bzk9x.shakefeedback.presentation.FeedbackData
 import com.bzk9x.shakefeedback.presentation.ShakeFeedbackCallback
 import com.bzk9x.shakefeedback.ui.ShakeFeedbackBottomSheet
+import com.bzk9x.shakefeedback.utils.HapticFeedbackProvider
 
 /**
- * Example MainActivity demonstrating how to integrate the ShakeFeedback library.
+ * Comprehensive test app for ShakeFeedback library.
  * 
- * This example shows:
- * 1. Initializing the shake feedback system with custom configuration
- * 2. Handling shake detection callbacks
- * 3. Displaying the built-in feedback UI
- * 4. Customizing the feedback experience
+ * Features:
+ * - Real-time configuration customization (all 8 parameters)
+ * - Manual shake trigger with different haptic patterns
+ * - Event logging with detailed information
+ * - Screenshot preview
+ * - Diagnostic logs display
+ * - Test individual haptic profiles
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var shakeFeedbackManager: ShakeFeedbackManager
+    private lateinit var hapticProvider: HapticFeedbackProvider
     private lateinit var feedbackStatusView: TextView
     private lateinit var eventLogView: TextView
+    private lateinit var configDisplayView: TextView
+
+    // Configuration controls
+    private lateinit var thresholdSeekBar: SeekBar
+    private lateinit var durationSeekBar: SeekBar
+    private lateinit var debounceSeekBar: SeekBar
+    private lateinit var smoothingSeekBar: SeekBar
+    private lateinit var crossingsSeekBar: SeekBar
+    private lateinit var hapticEnabledCheckBox: CheckBox
+    private lateinit var screenshotEnabledCheckBox: CheckBox
+    private lateinit var hapticPatternSpinner: Spinner
+
+    private var currentConfig: ShakeFeedbackConfig? = null
+    private val hapticPatterns = listOf("LIGHT_CLICK", "DOUBLE_TAP", "HEAVY_THUD")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(createMainLayout())
-
+        hapticProvider = HapticFeedbackProvider(this)
         initializeShakeFeedback()
     }
 
-    /**
-     * Creates the UI layout programmatically.
-     * In a real app, you'd typically use an XML layout file.
-     */
+    @SuppressLint("SetTextI18n")
     private fun createMainLayout(): FrameLayout {
         val root = FrameLayout(this).apply {
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT
             )
-            setBackgroundColor(android.graphics.Color.WHITE)
+            setBackgroundColor(Color.WHITE)
         }
 
         val scrollView = ScrollView(this).apply {
@@ -59,224 +81,416 @@ class MainActivity : AppCompatActivity() {
             )
         }
 
-        val containerLayout = LinearLayout(this).apply {
+        val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT
             )
-            setPadding(16.dpToPx(), 24.dpToPx(), 16.dpToPx(), 24.dpToPx())
+            setPadding(16.dpToPx(), 16.dpToPx(), 16.dpToPx(), 16.dpToPx())
         }
 
-        // Title
+        // === HEADER ===
         val titleView = TextView(this).apply {
-            text = "Shake to Report Bug"
-            textSize = 24f
-            setTextColor(android.graphics.Color.BLACK)
+            text = "ShakeFeedback Test App"
+            textSize = 22f
+            setTextColor(Color.BLACK)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = 16.dpToPx()
-            }
+            ).apply { bottomMargin = 8.dpToPx() }
         }
-        containerLayout.addView(titleView)
+        container.addView(titleView)
 
-        // Instructions
-        val instructionsView = TextView(this).apply {
-            text = "Shake your device to trigger the feedback form. This example demonstrates:\n\n" +
-                    "• Automatic shake detection using accelerometer\n" +
-                    "• Haptic feedback confirmation (double tap pattern)\n" +
-                    "• Screenshot capture on shake\n" +
-                    "• Built-in feedback UI with auto-filled context\n" +
-                    "• Custom configuration options\n\n" +
-                    "Try shaking your device now!"
-            textSize = 14f
-            setTextColor(android.graphics.Color.DKGRAY)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = 24.dpToPx()
-            }
-        }
-        containerLayout.addView(instructionsView)
-
-        // Status display
         feedbackStatusView = TextView(this).apply {
             text = "Status: Initializing..."
             textSize = 12f
-            setTextColor(android.graphics.Color.GRAY)
+            setTextColor(Color.GRAY)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = 16.dpToPx()
-            }
+            ).apply { bottomMargin = 12.dpToPx() }
         }
-        containerLayout.addView(feedbackStatusView)
+        container.addView(feedbackStatusView)
 
-        // Event log
-        eventLogView = TextView(this).apply {
-            text = "Event Log:\n"
-            textSize = 11f
-            setTextColor(android.graphics.Color.BLACK)
+
+        container.addView(createControlRow("Shake Threshold (m/s²): ", 3f, 50f, 30f) {
+            thresholdSeekBar = it.second
+            updateConfigAndRestart()
+        })
+
+        // Shake Duration (100 - 800 ms) - Reduced for faster detection
+        container.addView(createControlRow("Duration Threshold (ms): ", 100f, 800f, 250f) {
+            durationSeekBar = it.second
+            updateConfigAndRestart()
+        })
+
+        // Debounce (200 - 2000 ms) - Reduced for more frequent shake detection
+        container.addView(createControlRow("Debounce Interval (ms): ", 200f, 2000f, 500f) {
+            debounceSeekBar = it.second
+            updateConfigAndRestart()
+        })
+
+        // Smoothing Factor (0.3 - 0.95) - Reduced for more responsiveness
+        container.addView(createControlRow("Smoothing Factor (α): ", 0.3f, 0.95f, 0.7f) {
+            smoothingSeekBar = it.second
+            updateConfigAndRestart()
+        })
+
+        // Minimum Threshold Crossings (1 - 4) - Reduced for easier detection
+        container.addView(createControlRow("Min Peaks: ", 1f, 4f, 1f) {
+            crossingsSeekBar = it.second
+            updateConfigAndRestart()
+        })
+
+        // Haptic Pattern Spinner
+        hapticPatternSpinner = Spinner(this).apply {
+            adapter = ArrayAdapter(
+                this@MainActivity,
+                android.R.layout.simple_spinner_dropdown_item,
+                hapticPatterns
+            )
+            setSelection(1) // Default: DOUBLE_TAP
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = 16.dpToPx()
-            }
-            setBackgroundColor(android.graphics.Color.parseColor("#F0F0F0"))
-            setPadding(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
+            ).apply { bottomMargin = 8.dpToPx() }
         }
-        containerLayout.addView(eventLogView)
+        container.addView(hapticPatternSpinner)
 
-        // Test button
-        val testButton = Button(this).apply {
-            text = "Test Shake (Manual Trigger)"
+        // Haptic & Screenshot Checkboxes
+        hapticEnabledCheckBox = CheckBox(this).apply {
+            text = "✓ Haptic Feedback Enabled"
+            isChecked = true
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                bottomMargin = 8.dpToPx()
-            }
+            ).apply { bottomMargin = 4.dpToPx() }
+            setOnCheckedChangeListener { _, _ -> updateConfigAndRestart() }
+        }
+        container.addView(hapticEnabledCheckBox)
+
+        screenshotEnabledCheckBox = CheckBox(this).apply {
+            text = "✓ Auto-Capture Screenshot"
+            isChecked = true
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 12.dpToPx() }
+            setOnCheckedChangeListener { _, _ -> updateConfigAndRestart() }
+        }
+        container.addView(screenshotEnabledCheckBox)
+
+
+        val shakeButton = Button(this).apply {
+            text = "Trigger Shake Detection"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 8.dpToPx() }
             setOnClickListener {
-                logEvent("Manual shake triggered!")
+                logEvent("Manual shake triggered")
                 ShakeFeedback.triggerShakeForTesting()
             }
         }
-        containerLayout.addView(testButton)
+        container.addView(shakeButton)
 
-        // Config info button
+        // Test Haptic Patterns
+        val testHapticButton = Button(this).apply {
+            text = "Test Current Haptic Pattern"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 8.dpToPx() }
+            setOnClickListener {
+                val pattern = when (hapticPatternSpinner.selectedItemPosition) {
+                    0 -> HapticProfile.LIGHT_CLICK
+                    1 -> HapticProfile.DOUBLE_TAP
+                    else -> HapticProfile.HEAVY_THUD
+                }
+                hapticProvider.vibrate(pattern)
+                logEvent("Testing: ${hapticPatterns[hapticPatternSpinner.selectedItemPosition]}")
+            }
+        }
+        container.addView(testHapticButton)
+
         val configButton = Button(this).apply {
-            text = "Show Configuration"
+            text = "Show Current Config"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 8.dpToPx() }
+            setOnClickListener { showCurrentConfig() }
+        }
+        container.addView(configButton)
+
+        val diagButton = Button(this).apply {
+            text = "Show Diagnostics"
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 12.dpToPx() }
+            setOnClickListener { showDiagnostics() }
+        }
+        container.addView(diagButton)
+
+
+        val logTitle = TextView(this).apply {
+            text = "Event Log"
+            textSize = 14f
+            setTextColor(Color.parseColor("#1976D2"))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 8.dpToPx(); bottomMargin = 8.dpToPx() }
+        }
+        container.addView(logTitle)
+
+        eventLogView = TextView(this).apply {
+            text = "Ready...\n"
+            textSize = 10f
+            setTextColor(Color.BLACK)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             )
-            setOnClickListener {
-                showConfigurationInfo()
-            }
+            setBackgroundColor(Color.parseColor("#F5F5F5"))
+            setPadding(8.dpToPx(), 8.dpToPx(), 8.dpToPx(), 8.dpToPx())
         }
-        containerLayout.addView(configButton)
+        container.addView(eventLogView)
 
-        scrollView.addView(containerLayout)
+        scrollView.addView(container)
         root.addView(scrollView)
-
         return root
     }
 
-    /**
-     * Initialize the ShakeFeedback system with custom configuration.
-     */
+    private fun createControlRow(
+        label: String,
+        minVal: Float,
+        maxVal: Float,
+        defaultVal: Float,
+        callback: (Pair<Float, SeekBar>) -> Unit
+    ): LinearLayout {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 8.dpToPx() }
+        }
+
+        val labelView = TextView(this).apply {
+            text = "$label${defaultVal.toInt()}"
+            textSize = 12f
+            setTextColor(Color.DKGRAY)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = 4.dpToPx() }
+        }
+        row.addView(labelView)
+
+        val seekBar = SeekBar(this).apply {
+            max = ((maxVal - minVal) * 100).toInt()
+            progress = ((defaultVal - minVal) * 100).toInt()
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                    if (fromUser) {
+                        val value = minVal + (progress / 100f) * (maxVal - minVal)
+                        labelView.text = "$label${if (maxVal <= 1.0) String.format("%.2f", value) else value.toInt()}"
+                        updateConfigAndRestart()
+                    }
+                }
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            })
+        }
+        row.addView(seekBar)
+
+        callback(Pair(defaultVal, seekBar))
+        return row
+    }
+
     private fun initializeShakeFeedback() {
-        // Create custom configuration
+        updateConfigAndRestart()
+    }
+
+    private fun updateConfigAndRestart() {
+        val threshold = if (::thresholdSeekBar.isInitialized) {
+            3f + (thresholdSeekBar.progress / 100f) * 47f
+        } else {
+            30.0f
+        }
+
+        val duration = if (::durationSeekBar.isInitialized) {
+            100L + (durationSeekBar.progress / 100f) * 700f
+        } else {
+            250L
+        }.toLong()
+
+        val debounce = if (::debounceSeekBar.isInitialized) {
+            200L + (debounceSeekBar.progress / 100f) * 1800f
+        } else {
+            500L
+        }.toLong()
+
+        val smoothing = if (::smoothingSeekBar.isInitialized) {
+            0.3f + (smoothingSeekBar.progress / 100f) * 0.65f
+        } else {
+            0.7f
+        }
+
+        val crossings = if (::crossingsSeekBar.isInitialized) {
+            1 + (crossingsSeekBar.progress / 100f) * 3
+        } else {
+            1
+        }.toInt()
+
+        val hapticPattern = when (
+            if (::hapticPatternSpinner.isInitialized) hapticPatternSpinner.selectedItemPosition else 1
+        ) {
+            0 -> HapticProfile.LIGHT_CLICK
+            2 -> HapticProfile.HEAVY_THUD
+            else -> HapticProfile.DOUBLE_TAP
+        }
+
         val config = ShakeFeedbackConfig.Builder()
-            .shakeThreshold(13.0f)  // Default threshold
-            .shakeDurationThreshold(400L)  // Time window for shake detection
-            .debounceInterval(1000L)  // Cool-down period
-            .hapticFeedbackEnabled(true)  // Enable vibration
-            .hapticPattern(HapticProfile.DOUBLE_TAP)  // Double tap pattern
-            .autoCaptureScreenshot(true)  // Auto-capture screenshot
-            .smoothingFactor(0.9f)  // Noise filtering strength
-            .minimumThresholdCrossings(2)  // Minimum peaks in acceleration
+            .shakeThreshold(threshold)
+            .shakeDurationThreshold(duration)
+            .debounceInterval(debounce)
+            .hapticFeedbackEnabled(
+                if (::hapticEnabledCheckBox.isInitialized) hapticEnabledCheckBox.isChecked else true
+            )
+            .hapticPattern(hapticPattern)
+            .autoCaptureScreenshot(
+                if (::screenshotEnabledCheckBox.isInitialized) screenshotEnabledCheckBox.isChecked else true
+            )
+            .smoothingFactor(smoothing)
+            .minimumThresholdCrossings(crossings)
             .build()
 
-        // Create callback to handle shake events
+        currentConfig = config
+
+        if (::shakeFeedbackManager.isInitialized) {
+            shakeFeedbackManager.destroy()
+        }
+
         val callback = object : ShakeFeedbackCallback {
             override fun onShakeDetected(event: ShakeEvent) {
-                logEvent("🔔 Shake detected! Showing feedback form...")
+                logEvent("Shake detected! Screenshot: ${event.screenshot != null}")
                 showFeedbackForm(event)
             }
 
             override fun onFeedbackSubmitted(data: FeedbackData) {
-                logEvent("✅ Feedback submitted: \"${data.description.take(30)}...\"")
-                feedbackStatusView.text = "Status: Feedback received! (${data.timestamp})"
+                logEvent("Feedback submitted (${data.userEmail ?: "anonymous"})")
+                if (::feedbackStatusView.isInitialized) {
+                    feedbackStatusView.text = "Status: Feedback received!"
+                }
             }
 
             override fun onFeedbackDismissed() {
-                logEvent("❌ Feedback dismissed")
-                feedbackStatusView.text = "Status: Ready for next shake"
+                logEvent("Feedback dismissed")
+                if (::feedbackStatusView.isInitialized) {
+                    feedbackStatusView.text = "Status: Ready for next shake"
+                }
             }
 
             override fun onError(errorMessage: String) {
-                logEvent("⚠️ Error: $errorMessage")
-                feedbackStatusView.text = "Status: Error - $errorMessage"
+                logEvent("Error: $errorMessage")
             }
         }
 
-        // Initialize the ShakeFeedback system
-        shakeFeedbackManager = ShakeFeedback.initialize(
-            activity = this,
-            config = config,
-            callback = callback
-        )
-
-        feedbackStatusView.text = "Status: Shake feedback active!"
-        logEvent("✨ ShakeFeedback initialized with default settings")
+        shakeFeedbackManager = ShakeFeedback.initialize(this, config, callback)
+        if (::feedbackStatusView.isInitialized) {
+            feedbackStatusView.text = "Status: Active"
+        }
+        updateConfigDisplay()
+        logEvent("Config updated and restarted")
     }
 
-    /**
-     * Display the built-in feedback form when a shake is detected.
-     */
+    private fun updateConfigDisplay() {
+        // Only update if the view has been initialized
+        if (!::configDisplayView.isInitialized) return
+        
+        currentConfig?.let { cfg ->
+            val info = """Threshold: ${String.format("%.1f", cfg.shakeThreshold)} m/s²  |  Duration: ${cfg.shakeDurationThreshold}ms
+Debounce: ${cfg.debounceInterval}ms  |  α: ${String.format("%.2f", cfg.smoothingFactor)}
+Haptic: ${if (cfg.isHapticFeedbackEnabled) "ON" else "OFF"}  |  Screenshot: ${if (cfg.autoCaptureScreenshot) "ON" else "OFF"}"""
+            configDisplayView.text = info
+        }
+    }
+
     private fun showFeedbackForm(event: ShakeEvent) {
         val feedbackSheet = ShakeFeedbackBottomSheet.newInstance(
             screenshot = event.screenshot,
             diagnosticLogs = event.diagnosticLogs
         )
 
-        feedbackSheet.setOnFeedbackSubmittedListener { feedback ->
-            logEvent("Feedback submitted by user")
+        feedbackSheet.setOnFeedbackSubmittedListener {
+            logEvent("User submitted feedback")
         }
 
         feedbackSheet.setOnDismissedListener {
-            logEvent("User dismissed feedback form")
+            logEvent("Feedback form closed")
         }
 
         feedbackSheet.show(supportFragmentManager, "shake_feedback")
     }
 
-    /**
-     * Display the current configuration in a dialog.
-     */
-    private fun showConfigurationInfo() {
-        val configInfo = """
-            Configuration Details:
-            
-            Shake Threshold: 13.0 m/s²
-            Shake Duration: 400 ms
-            Debounce Interval: 1000 ms
-            Haptic Feedback: ENABLED (DOUBLE_TAP)
-            Auto-Screenshot: ENABLED
-            Smoothing Factor: 0.9
-            Min Threshold Crossings: 2
-            
-            These defaults are optimized for:
-            • Filtering out walking/running
-            • Preventing false positives
-            • Immediate tactile confirmation
-            • Capturing visual context
-        """.trimIndent()
+    private fun showCurrentConfig() {
+        currentConfig?.let { cfg ->
+            val info = """
+                CURRENT CONFIGURATION
+                
+                Shake Threshold: ${String.format("%.2f", cfg.shakeThreshold)} m/s²
+                Shake Duration: ${cfg.shakeDurationThreshold} ms
+                Debounce Interval: ${cfg.debounceInterval} ms
+                
+                Smoothing Factor (α): ${String.format("%.2f", cfg.smoothingFactor)}
+                Min Threshold Crossings: ${cfg.minimumThresholdCrossings}
+                
+                Haptic Feedback: ${if (cfg.isHapticFeedbackEnabled) "ENABLED" else "DISABLED"}
+                Haptic Pattern: ${cfg.hapticPattern::class.simpleName}
+                
+                Auto-Screenshot: ${if (cfg.autoCaptureScreenshot) "ENABLED" else "DISABLED"}
+                
+                PHYSICS CONTEXT:
+                • 9.81 m/s² = Earth gravity
+                • 1-3 m/s² = Walking
+                • 3-8 m/s² = Running
+                • 12-30 m/s² = Intentional shake
+            """.trimIndent()
 
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Configuration Info")
-            .setMessage(configInfo)
+            AlertDialog.Builder(this)
+                .setTitle("Configuration Details")
+                .setMessage(info)
+                .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
+                .show()
+        }
+    }
+
+    private fun showDiagnostics() {
+        val message = "Diagnostics will be captured on next shake event.\n\nIncludes:\n" +
+                "• Device info\n• Memory usage\n• Storage space\n• System logs"
+        AlertDialog.Builder(this)
+            .setTitle("Diagnostics")
+            .setMessage(message)
             .setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
             .show()
     }
 
-    /**
-     * Log events to the UI for debugging purposes.
-     */
     private fun logEvent(message: String) {
+        if (!::eventLogView.isInitialized) return
+        
         val timestamp = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.getDefault())
             .format(java.util.Date())
-        val newLog = eventLogView.text.toString() + "[$timestamp] $message\n"
-        eventLogView.text = newLog
-
-        // Keep only the last 20 lines
-        val lines = newLog.split("\n").takeLast(20)
+        val current = eventLogView.text.toString()
+        val newLog = "[$timestamp] $message\n$current"
+        val lines = newLog.split("\n").take(15)
         eventLogView.text = lines.joinToString("\n")
     }
 

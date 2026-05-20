@@ -20,7 +20,7 @@ import com.bzk9x.shakefeedback.presentation.ShakeFeedbackCallback
  *     val shakeFeedback = ShakeFeedback.initialize(
  *         activity = this,
  *         config = ShakeFeedbackConfig.Builder()
- *             .shakeThreshold(12.0f)
+ *             .shakeThreshold(30.0f)  // Sweet spot for reliable detection
  *             .build(),
  *         callback = object : ShakeFeedbackCallback {
  *             override fun onShakeDetected(event: ShakeEvent) {

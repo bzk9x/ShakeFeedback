@@ -46,7 +46,6 @@ class ShakeFeedbackManager(
     private var isInitialized = false
 
     init {
-        // Wire up the layers
         shakeDetector.addListener(this)
         accelerometerDataSource.addListener(shakeDetector)
     }
@@ -153,28 +152,23 @@ class ShakeFeedbackManager(
     override fun onShakeDetected(event: ShakeEvent) {
         coroutineScope.launch(Dispatchers.Main) {
             try {
-                // Step 1: Provide immediate haptic feedback
                 if (config.isHapticFeedbackEnabled) {
                     hapticFeedbackProvider.vibrate(config.hapticPattern)
                 }
 
-                // Step 2: Capture screenshot if enabled
                 val screenshot = if (config.autoCaptureScreenshot && currentActivity != null) {
                     ScreenshotCapture.captureScreenshot(currentActivity!!)
                 } else {
                     null
                 }
 
-                // Step 3: Gather diagnostic logs
                 val diagnostics = DiagnosticLogger.collectDiagnostics(appContext)
 
-                // Step 4: Create enriched shake event
                 val enrichedEvent = event.copy(
                     screenshot = screenshot,
                     diagnosticLogs = diagnostics
                 )
 
-                // Step 5: Emit to the Presentation Layer
                 callback?.onShakeDetected(enrichedEvent)
 
             } catch (e: Exception) {
