@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ShakeFeedback — Android Shake-to-Report Library</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0b08;
+  --bg2: #131008;
+  --bg3: #1c1810;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text: #ede8dc;
+  --muted: #6d6758;
+  --subtle: #9a9283;
+  --accent: #f0c040;
+  --accent-low: rgba(240,192,64,0.1);
+  --accent-mid: rgba(240,192,64,0.2);
+  --code-bg: #0a0907;
+  --green: #60cc7a;
+  --blue: #70b8f0;
+  --purple: #b09af2;
+  --orange: #f0a060;
+  --red: #f07060;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Outfit', sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+a { color: inherit; text-decoration: none; }
+code, pre { font-family: 'IBM Plex Mono', monospace; }
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(13,11,8,0.85);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; gap: 2rem;
+  padding: 0 2rem; height: 60px;
+}
+.logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500;
+  letter-spacing: -0.01em; white-space: nowrap;
+}
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent); color: #0a0800;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500;
+}
+.version-badge {
+  font-size: 11px; padding: 2px 8px;
+  background: var(--accent-low); color: var(--accent);
+  border: 1px solid rgba(240,192,64,0.25);
+  border-radius: 20px;
+}
+.nav-links {
+  display: flex; gap: 0; margin-left: auto;
+}
+.nav-links a {
+  font-size: 14px; color: var(--subtle); padding: 0 16px;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--text); }
+.nav-cta {
+  font-size: 13px; font-weight: 500;
+  padding: 7px 18px;
+  background: var(--accent); color: #0a0800;
+  border-radius: 8px;
+  transition: opacity .2s;
+  white-space: nowrap;
+}
+.nav-cta:hover { opacity: .85; }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; align-items: center;
+  max-width: 1100px; margin: 0 auto;
+  padding: 120px 2rem 80px;
+  gap: 60px;
+}
+.hero-left { flex: 1; min-width: 0; }
+.hero-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .12em;
+  color: var(--accent); text-transform: uppercase;
+  margin-bottom: 24px;
+  display: flex; align-items: center; gap: 8px;
+}
+.hero-eyebrow::before {
+  content: ''; display: block;
+  width: 20px; height: 1px; background: var(--accent);
+}
+.hero-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(42px, 5.5vw, 68px);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  margin-bottom: 22px;
+}
+.hero-title em {
+  font-style: italic; color: var(--accent);
+}
+.hero-sub {
+  font-size: 17px; color: var(--subtle);
+  max-width: 480px; line-height: 1.7;
+  margin-bottom: 36px;
+}
+.hero-sub strong { color: var(--text); font-weight: 500; }
+.install-block {
+  display: inline-flex; align-items: center; gap: 0;
+  background: var(--code-bg);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  overflow: hidden; margin-bottom: 32px;
+  max-width: 100%;
+}
+.install-label {
+  font-size: 11px; font-family: 'IBM Plex Mono', monospace;
+  color: var(--muted); padding: 0 14px;
+  background: var(--bg2); border-right: 1px solid var(--border);
+  height: 42px; display: flex; align-items: center;
+  white-space: nowrap;
+}
+.install-code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; color: var(--text);
+  padding: 0 16px; height: 42px;
+  display: flex; align-items: center;
+  white-space: nowrap; overflow: hidden;
+  text-overflow: ellipsis;
+}
+.install-code .k { color: var(--accent); }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+.btn-primary {
+  padding: 11px 24px; font-size: 14px; font-weight: 500;
+  background: var(--accent); color: #0a0800;
+  border: none; border-radius: 9px; cursor: pointer;
+  transition: opacity .2s;
+}
+.btn-primary:hover { opacity: .85; }
+.btn-secondary {
+  padding: 11px 24px; font-size: 14px; font-weight: 400;
+  background: transparent; color: var(--subtle);
+  border: 1px solid var(--border2); border-radius: 9px; cursor: pointer;
+  transition: color .2s, border-color .2s;
+}
+.btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.25); }
+
+/* ── PHONE MOCKUP ── */
+.hero-right {
+  flex: 0 0 300px;
+  display: flex; justify-content: center; align-items: center;
+  position: relative;
+}
+.phone-wrap {
+  animation: phoneShake 6s ease-in-out infinite;
+  position: relative;
+}
+@keyframes phoneShake {
+  0%, 75%, 100% { transform: translate(0,0) rotate(0deg); }
+  76% { transform: translate(-5px,-2px) rotate(-3.5deg); }
+  77% { transform: translate(6px, 1px) rotate(3deg); }
+  78% { transform: translate(-7px,-1px) rotate(-4deg); }
+  79% { transform: translate(7px, 2px) rotate(4deg); }
+  80% { transform: translate(-5px,-1px) rotate(-2.5deg); }
+  81% { transform: translate(5px, 1px) rotate(2.5deg); }
+  82% { transform: translate(-3px, 0px) rotate(-1.5deg); }
+  83% { transform: translate(3px, 0px) rotate(1.5deg); }
+  84% { transform: translate(-1px, 0px) rotate(-0.5deg); }
+  85% { transform: translate(0,0) rotate(0deg); }
+}
+.phone-frame {
+  width: 220px; height: 430px;
+  background: var(--bg3);
+  border: 1.5px solid var(--border2);
+  border-radius: 36px;
+  overflow: hidden; position: relative;
+  box-shadow: 0 0 0 6px rgba(255,255,255,0.03), 0 30px 80px rgba(0,0,0,0.6);
+}
+.phone-notch {
+  width: 80px; height: 24px;
+  background: var(--bg3);
+  border-radius: 0 0 18px 18px;
+  margin: 0 auto;
+  border-bottom: 1.5px solid var(--border2);
+  border-left: 1.5px solid var(--border2);
+  border-right: 1.5px solid var(--border2);
+  position: relative; z-index: 2;
+}
+.phone-screen {
+  position: absolute; inset: 0;
+  background: #0f0e0a; overflow: hidden;
+}
+.phone-statusbar {
+  height: 32px; padding: 8px 16px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.phone-statusbar span {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; color: var(--muted);
+}
+.phone-appbar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  font-size: 13px; font-weight: 500; color: var(--text);
+}
+.phone-content { padding: 16px; }
+.skel {
+  height: 8px; border-radius: 4px;
+  background: rgba(255,255,255,0.06);
+  margin-bottom: 10px;
+}
+.skel.w60 { width: 60%; }
+.skel.w80 { width: 80%; }
+.skel.w45 { width: 45%; }
+.skel.h24 { height: 60px; border-radius: 10px; margin-bottom: 12px; }
+.phone-fab {
+  position: absolute; bottom: 36px; right: 18px;
+  width: 42px; height: 42px;
+  background: var(--accent); color: #0a0800;
+  border-radius: 14px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 300; line-height: 1;
+}
+/* Feedback sheet */
+.feedback-sheet {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: #1a1812;
+  border: 1px solid var(--border2);
+  border-radius: 24px 24px 0 0;
+  padding: 20px 18px 28px;
+  animation: sheetReveal 6s ease-in-out infinite;
+  transform: translateY(100%);
+}
+@keyframes sheetReveal {
+  0%, 78%, 100% { transform: translateY(100%); opacity: 0; }
+  82%, 90%      { transform: translateY(0);    opacity: 1; }
+  95%           { transform: translateY(100%); opacity: 0; }
+}
+.sheet-handle {
+  width: 36px; height: 3px;
+  background: var(--border2); border-radius: 2px;
+  margin: 0 auto 16px;
+}
+.sheet-title {
+  font-size: 12px; font-weight: 500; color: var(--text);
+  margin-bottom: 10px;
+}
+.sheet-thumb {
+  width: 100%; height: 60px;
+  background: rgba(240,192,64,0.08);
+  border: 1px solid rgba(240,192,64,0.2);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px; color: var(--accent);
+  margin-bottom: 12px;
+}
+.sheet-textarea {
+  width: 100%; height: 34px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border2);
+  border-radius: 7px;
+  margin-bottom: 10px;
+}
+.sheet-btn {
+  width: 100%; height: 30px;
+  background: var(--accent); color: #0a0800;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600;
+}
+.phone-glow {
+  position: absolute; top: 50%; left: 50%;
+  width: 300px; height: 500px;
+  background: radial-gradient(ellipse, rgba(240,192,64,0.05) 0%, transparent 70%);
+  transform: translate(-50%,-50%);
+  pointer-events: none;
+}
+
+/* ── STATS BAR ── */
+.stats-bar {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stats-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  padding: 0 2rem;
+}
+.stat-item {
+  padding: 28px 0;
+  border-right: 1px solid var(--border);
+  text-align: center;
+}
+.stat-item:last-child { border-right: none; }
+.stat-num {
+  font-family: 'Instrument Serif', serif;
+  font-size: 36px; line-height: 1;
+  color: var(--text); margin-bottom: 6px;
+}
+.stat-label {
+  font-size: 12px; color: var(--muted);
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── SECTIONS ── */
+section { max-width: 1100px; margin: 0 auto; padding: 100px 2rem; }
+.section-eyebrow {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .12em;
+  color: var(--accent); text-transform: uppercase;
+  margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-eyebrow::before { content: ''; width: 16px; height: 1px; background: var(--accent); }
+.section-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(30px, 3.5vw, 44px);
+  line-height: 1.1; letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+.section-title em { font-style: italic; color: var(--accent); }
+.section-sub {
+  font-size: 16px; color: var(--subtle);
+  max-width: 520px; line-height: 1.7;
+  margin-bottom: 56px;
+}
+
+/* ── FEATURES ── */
+.features-grid {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px; overflow: hidden;
+}
+.feat-card {
+  background: var(--bg);
+  padding: 32px 28px;
+  transition: background .2s;
+}
+.feat-card:hover { background: var(--bg2); }
+.feat-icon {
+  width: 40px; height: 40px;
+  background: var(--accent-low);
+  border: 1px solid rgba(240,192,64,0.2);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+}
+.feat-icon svg { width: 18px; height: 18px; stroke: var(--accent); fill: none; stroke-width: 2; }
+.feat-name {
+  font-size: 15px; font-weight: 500; color: var(--text);
+  margin-bottom: 8px;
+}
+.feat-desc { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* ── ARCHITECTURE ── */
+.arch-section { border-top: 1px solid var(--border); }
+.arch-layout {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+}
+.arch-steps { display: flex; flex-direction: column; gap: 0; }
+.arch-step {
+  display: flex; gap: 20px;
+  padding: 28px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.arch-step:last-child { border-bottom: none; }
+.arch-num {
+  width: 32px; height: 32px; flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--muted);
+  transition: all .3s;
+}
+.arch-step.active .arch-num,
+.arch-step:hover .arch-num {
+  background: var(--accent-low);
+  border-color: rgba(240,192,64,0.4);
+  color: var(--accent);
+}
+.arch-step-body { flex: 1; }
+.arch-step-name {
+  font-size: 15px; font-weight: 500; color: var(--text);
+  margin-bottom: 4px;
+}
+.arch-step-class {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; color: var(--accent); margin-bottom: 10px;
+}
+.arch-step-desc {
+  font-size: 14px; color: var(--muted); line-height: 1.65;
+}
+.arch-detail {
+  position: sticky; top: 80px;
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 16px; padding: 28px;
+}
+.arch-detail-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: 22px; margin-bottom: 6px;
+}
+.arch-detail-class {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--accent); margin-bottom: 20px;
+}
+.arch-detail-features { list-style: none; }
+.arch-detail-features li {
+  font-size: 14px; color: var(--subtle);
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px;
+  line-height: 1.5;
+}
+.arch-detail-features li:last-child { border-bottom: none; }
+.arch-detail-features li::before {
+  content: '→'; color: var(--accent); font-size: 13px;
+  flex-shrink: 0; margin-top: 1px;
+}
+.arch-tag {
+  display: inline-block; margin-top: 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 4px 10px;
+  background: var(--accent-low); color: var(--accent);
+  border: 1px solid rgba(240,192,64,0.2);
+  border-radius: 20px;
+}
+
+/* ── CODE SECTION ── */
+.code-section { border-top: 1px solid var(--border); }
+.code-tabs { display: flex; gap: 0; margin-bottom: 0; }
+.code-tab {
+  padding: 10px 20px; font-size: 13px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--muted); cursor: pointer;
+  border: 1px solid var(--border);
+  border-bottom: none; border-right: none;
+  background: var(--bg2);
+  transition: color .2s, background .2s;
+}
+.code-tab:first-child { border-radius: 8px 0 0 0; }
+.code-tab:last-child { border-right: 1px solid var(--border); border-radius: 0 8px 0 0; }
+.code-tab.active { background: var(--code-bg); color: var(--text); }
+.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 0 12px 12px 12px;
+  padding: 28px 28px;
+  overflow-x: auto; display: none;
+}
+.code-block.active { display: block; }
+.code-block pre {
+  font-size: 13px; line-height: 1.75;
+  color: #a09888;
+}
+.k  { color: #b09af2; } /* keyword */
+.t  { color: var(--blue); } /* type */
+.s  { color: var(--green); } /* string */
+.n  { color: var(--accent); } /* function name */
+.c  { color: var(--muted); font-style: italic; } /* comment */
+.p  { color: var(--text); } /* punctuation */
+.num { color: var(--orange); } /* number */
+
+/* ── PERFORMANCE ── */
+.perf-section { border-top: 1px solid var(--border); }
+.perf-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start;
+}
+.perf-table { width: 100%; border-collapse: collapse; }
+.perf-table th {
+  text-align: left; font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); padding: 10px 0;
+  border-bottom: 1px solid var(--border2);
+  font-weight: 500;
+}
+.perf-table td {
+  padding: 14px 0; font-size: 14px; color: var(--subtle);
+  border-bottom: 1px solid var(--border);
+}
+.perf-table td:first-child { color: var(--text); }
+.perf-table td strong {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; color: var(--accent); font-weight: 500;
+}
+.perf-guarantees { display: flex; flex-direction: column; gap: 0; }
+.guarantee {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 20px 0; border-bottom: 1px solid var(--border);
+}
+.guarantee:last-child { border-bottom: none; }
+.guarantee-dot {
+  width: 7px; height: 7px;
+  background: var(--green); border-radius: 50%;
+  margin-top: 7px; flex-shrink: 0;
+}
+.guarantee-text { font-size: 14px; color: var(--subtle); line-height: 1.6; }
+.guarantee-text strong { color: var(--text); font-weight: 500; }
+
+/* ── CREATORS ── */
+.creators-section {
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.creators-inner {
+  max-width: 640px; margin: 0 auto; padding: 100px 2rem;
+}
+.creators-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .12em;
+  color: var(--muted); text-transform: uppercase;
+  margin-bottom: 32px;
+}
+.creators-names {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(28px, 4vw, 48px);
+  line-height: 1.2; letter-spacing: -0.02em;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+.creators-names em { font-style: italic; color: var(--accent); }
+.creators-handles {
+  display: flex; gap: 16px; justify-content: center; flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.creator-handle {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; padding: 6px 14px;
+  background: var(--bg2); color: var(--subtle);
+  border: 1px solid var(--border2); border-radius: 20px;
+}
+.creators-sub { font-size: 15px; color: var(--muted); line-height: 1.7; }
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 2rem;
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-logo {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; color: var(--muted);
+}
+.footer-logo strong { color: var(--subtle); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a {
+  font-size: 13px; color: var(--muted);
+  transition: color .2s;
+}
+.footer-links a:hover { color: var(--subtle); }
+.footer-license {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px; color: var(--muted);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 860px) {
+  .hero { flex-direction: column; padding-top: 100px; }
+  .hero-right { flex: none; }
+  .features-grid { grid-template-columns: repeat(2,1fr); }
+  .arch-layout { grid-template-columns: 1fr; }
+  .arch-detail { position: static; }
+  .stats-inner { grid-template-columns: repeat(2,1fr); }
+  .perf-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .features-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── NAV ── -->
+<nav>
+  <div class="nav-inner">
+    <div class="logo">
+      <div class="logo-icon">〜</div>
+      ShakeFeedback
+      <span class="version-badge">v1.0.0</span>
+    </div>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#code">Quick Start</a>
+      <a href="#performance">Performance</a>
+    </div>
+    <a href="#code" class="nav-cta">Get Started →</a>
+  </div>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <div class="hero-left">
+    <div class="hero-eyebrow">Android Library · Min API 24+</div>
+    <h1 class="hero-title">
+      Shake the phone.<br>
+      <em>Bug reported.</em>
+    </h1>
+    <p class="hero-sub">
+      A <strong>professional-grade Android library</strong> for shake-to-report-bug functionality.
+      Four-layer architecture. Auto-screenshot. Zero background drain.
+      Drop in, configure once, ship.
+    </p>
+    <div class="install-block">
+      <span class="install-label">Gradle</span>
+      <code class="install-code">
+        implementation(<span class="k">"</span><span style="color:var(--green)">com.bzk9x:shakefeedback:1.0.0</span><span class="k">"</span>)
+      </code>
+    </div>
+    <div class="hero-actions">
+      <a href="#code" class="btn-primary">Quick Start</a>
+      <a href="#architecture" class="btn-secondary">Architecture Docs →</a>
+    </div>
+  </div>
+  <div class="hero-right">
+    <div class="phone-glow"></div>
+    <div class="phone-wrap">
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-statusbar">
+            <span>9:41</span>
+            <span>●●●</span>
+          </div>
+          <div class="phone-appbar">My Application</div>
+          <div class="phone-content">
+            <div class="skel h24 w80"></div>
+            <div class="skel w80"></div>
+            <div class="skel w60"></div>
+            <div class="skel w45" style="margin-top:18px"></div>
+            <div class="skel h24 w80" style="margin-top:8px"></div>
+            <div class="skel w60"></div>
+            <div class="skel w80"></div>
+          </div>
+          <div class="phone-fab">+</div>
+          <div class="feedback-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">🐛 Report a Bug</div>
+            <div class="sheet-thumb">📸 screenshot captured</div>
+            <div class="sheet-textarea"></div>
+            <div class="sheet-btn">Send Report</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── STATS BAR ── -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item">
+      <div class="stat-num">~500<span style="font-family:'Outfit',sans-serif;font-size:20px;color:var(--muted)">KB</span></div>
+      <div class="stat-label">Library Size</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">24<span style="font-family:'Outfit',sans-serif;font-size:20px;color:var(--muted)">+</span></div>
+      <div class="stat-label">Min API Level</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt;200<span style="font-family:'Outfit',sans-serif;font-size:20px;color:var(--muted)">ms</span></div>
+      <div class="stat-label">Detection Latency</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-num">&lt;1<span style="font-family:'Outfit',sans-serif;font-size:20px;color:var(--muted)">%</span></div>
+      <div class="stat-label">CPU Usage</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<section id="features">
+  <div class="section-eyebrow">Features</div>
+  <h2 class="section-title">Everything you need,<br><em>nothing you don't.</em></h2>
+  <p class="section-sub">Built to integrate in minutes with sensible defaults tuned from real device data.</p>
+  <div class="features-grid">
+
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="feat-name">Four-Layer Architecture</div>
+      <div class="feat-desc">Hardware acquisition, signal processing, orchestration, and presentation — cleanly separated so you only touch what you need.</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      </div>
+      <div class="feat-name">Auto Screenshot Capture</div>
+      <div class="feat-desc">Captures the current Activity screen asynchronously, non-blocking, at the exact moment of shake. Can be disabled for privacy-sensitive apps.</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      </div>
+      <div class="feat-name">Haptic Profiles</div>
+      <div class="feat-desc">Three built-in patterns: LIGHT_CLICK, DOUBLE_TAP, and HEAVY_THUD. Or define custom timing and amplitude arrays.</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div class="feat-name">Lifecycle Aware</div>
+      <div class="feat-desc">Sensor binds and unbinds automatically with Activity or LifecycleOwner. Zero battery drain in background — no wake locks, ever.</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="feat-name">Smart Signal Processing</div>
+      <div class="feat-desc">Euclidean norm + gravity isolation + exponential moving average + debounce. Filters walking, running, and vehicle vibration with no false positives.</div>
+    </div>
+
+    <div class="feat-card">
+      <div class="feat-icon">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      </div>
+      <div class="feat-name">Diagnostic Collection</div>
+      <div class="feat-desc">Automatically captures device model, OS version, memory stats, storage, and last 50 logcat lines. No network calls — local only.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── ARCHITECTURE ── -->
+<section id="architecture" class="arch-section">
+  <div class="section-eyebrow">Architecture</div>
+  <h2 class="section-title">Four layers.<br><em>Zero coupling.</em></h2>
+  <p class="section-sub">Each concern lives in exactly one layer. Swap, extend, or test any layer independently.</p>
+  <div class="arch-layout">
+    <div class="arch-steps" id="archSteps">
+
+      <div class="arch-step active" data-layer="0">
+        <div class="arch-num">1</div>
+        <div class="arch-step-body">
+          <div class="arch-step-name">Hardware Acquisition</div>
+          <div class="arch-step-class">AccelerometerDataSource</div>
+          <div class="arch-step-desc">Raw sensor polling at 60Hz. Pure hardware abstraction — no decisions, just (x,y,z) vectors.</div>
+        </div>
+      </div>
+
+      <div class="arch-step" data-layer="1">
+        <div class="arch-num">2</div>
+        <div class="arch-step-body">
+          <div class="arch-step-name">Signal Processing</div>
+          <div class="arch-step-class">ShakeDetector</div>
+          <div class="arch-step-desc">Mathematical pipeline: magnitude → gravity isolation → noise reduction → threshold crossing → debounce.</div>
+        </div>
+      </div>
+
+      <div class="arch-step" data-layer="2">
+        <div class="arch-num">3</div>
+        <div class="arch-step-body">
+          <div class="arch-step-name">Orchestration</div>
+          <div class="arch-step-class">ShakeFeedbackManager</div>
+          <div class="arch-step-desc">Observes Activity lifecycle, manages sensor binding, triggers haptics, and captures screenshots and diagnostics.</div>
+        </div>
+      </div>
+
+      <div class="arch-step" data-layer="3">
+        <div class="arch-num">4</div>
+        <div class="arch-step-body">
+          <div class="arch-step-name">Presentation</div>
+          <div class="arch-step-class">ShakeFeedbackCallback</div>
+          <div class="arch-step-desc">Pure callback interface to your app. Implement custom UI or use the built-in BottomSheet — your choice.</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="arch-detail" id="archDetail">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</section>
+
+<!-- ── CODE ── -->
+<section id="code" class="code-section">
+  <div class="section-eyebrow">Quick Start</div>
+  <h2 class="section-title">Up and running<br><em>in 5 minutes.</em></h2>
+  <p class="section-sub">Three setup paths depending on how much you want to customize.</p>
+
+  <div class="code-tabs">
+    <div class="code-tab active" onclick="switchTab(0)">Basic Setup</div>
+    <div class="code-tab" onclick="switchTab(1)">Custom Config</div>
+    <div class="code-tab" onclick="switchTab(2)">Built-in UI</div>
+  </div>
+
+  <div class="code-block active" id="tab0">
+    <pre><span class="c">// In your Activity onCreate()</span>
+<span class="t">ShakeFeedback</span>.<span class="n">initialize</span><span class="p">(</span>
+    activity = <span class="k">this</span>,
+    callback = <span class="k">object</span> : <span class="t">ShakeFeedbackCallback</span> <span class="p">{</span>
+
+        <span class="k">override fun</span> <span class="n">onShakeDetected</span><span class="p">(</span>event: <span class="t">ShakeEvent</span><span class="p">) {</span>
+            showFeedbackForm<span class="p">(</span>event<span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="k">override fun</span> <span class="n">onFeedbackSubmitted</span><span class="p">(</span>data: <span class="t">FeedbackData</span><span class="p">) {</span>
+            sendFeedbackToServer<span class="p">(</span>data<span class="p">)</span>
+        <span class="p">}</span>
+
+        <span class="k">override fun</span> <span class="n">onFeedbackDismissed</span><span class="p">() { }</span>
+
+        <span class="k">override fun</span> <span class="n">onError</span><span class="p">(</span>message: <span class="t">String</span><span class="p">) { }</span>
+    <span class="p">}</span>
+<span class="p">)</span></pre>
+  </div>
+
+  <div class="code-block" id="tab1">
+    <pre><span class="k">val</span> config = <span class="t">ShakeFeedbackConfig</span>.<span class="n">Builder</span><span class="p">()</span>
+    .<span class="n">shakeThreshold</span><span class="p">(</span><span class="num">12.0f</span><span class="p">)</span>          <span class="c">// More sensitive</span>
+    .<span class="n">hapticPattern</span><span class="p">(</span><span class="t">HapticProfile</span>.HEAVY_THUD<span class="p">)</span>
+    .<span class="n">autoCaptureScreenshot</span><span class="p">(</span><span class="k">true</span><span class="p">)</span>
+    .<span class="n">debounceInterval</span><span class="p">(</span><span class="num">2000L</span><span class="p">)</span>        <span class="c">// Longer cooldown</span>
+    .<span class="n">smoothingFactor</span><span class="p">(</span><span class="num">0.9f</span><span class="p">)</span>
+    .<span class="n">minimumThresholdCrossings</span><span class="p">(</span><span class="num">2</span><span class="p">)</span>
+    .<span class="n">build</span><span class="p">()</span>
+
+<span class="t">ShakeFeedback</span>.<span class="n">initialize</span><span class="p">(</span>
+    activity = <span class="k">this</span>,
+    config = config,
+    callback = myCallback
+<span class="p">)</span></pre>
+  </div>
+
+  <div class="code-block" id="tab2">
+    <pre><span class="k">override fun</span> <span class="n">onShakeDetected</span><span class="p">(</span>event: <span class="t">ShakeEvent</span><span class="p">) {</span>
+
+    <span class="k">val</span> sheet = <span class="t">ShakeFeedbackBottomSheet</span>.<span class="n">newInstance</span><span class="p">(</span>
+        screenshot    = event.screenshot,
+        diagnosticLogs = event.diagnosticLogs
+    <span class="p">)</span>
+
+    sheet.<span class="n">setOnFeedbackSubmittedListener</span> <span class="p">{</span> feedback ->
+        uploadFeedback<span class="p">(</span>feedback<span class="p">)</span>   <span class="c">// Send to your server</span>
+    <span class="p">}</span>
+
+    sheet.<span class="n">show</span><span class="p">(</span>supportFragmentManager, <span class="s">"feedback"</span><span class="p">)</span>
+<span class="p">}</span></pre>
+  </div>
+</section>
+
+<!-- ── PERFORMANCE ── -->
+<section id="performance" class="perf-section">
+  <div class="section-eyebrow">Performance</div>
+  <h2 class="section-title">Benchmarked.<br><em>Guaranteed.</em></h2>
+  <p class="section-sub">Measured on real devices across a range of hardware generations.</p>
+  <div class="perf-grid">
+    <table class="perf-table">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Value</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Library size</td><td><strong>~500 KB</strong></td><td>Total APK impact</td></tr>
+        <tr><td>Detection latency</td><td><strong>100–200 ms</strong></td><td>Shake to callback</td></tr>
+        <tr><td>CPU usage</td><td><strong>&lt;1%</strong></td><td>Average when active</td></tr>
+        <tr><td>Memory peak</td><td><strong>~2 MB</strong></td><td>Includes bitmap cache</td></tr>
+        <tr><td>Sensor polling</td><td><strong>~60 Hz</strong></td><td>16 ms intervals</td></tr>
+        <tr><td>Screenshot capture</td><td><strong>50–200 ms</strong></td><td>Async, non-blocking</td></tr>
+        <tr><td>Diagnostics collect</td><td><strong>100–300 ms</strong></td><td>Async, non-blocking</td></tr>
+      </tbody>
+    </table>
+    <div class="perf-guarantees">
+      <div class="guarantee">
+        <div class="guarantee-dot"></div>
+        <div class="guarantee-text"><strong>Zero background drain.</strong> Sensor is unregistered the moment the app pauses. No wake locks, no idle polling.</div>
+      </div>
+      <div class="guarantee">
+        <div class="guarantee-dot"></div>
+        <div class="guarantee-text"><strong>Constant memory footprint.</strong> No accumulating caches — memory usage stays flat regardless of how many shakes occur.</div>
+      </div>
+      <div class="guarantee">
+        <div class="guarantee-dot"></div>
+        <div class="guarantee-text"><strong>No network calls.</strong> All processing is local. No tracking, no external pings — your data stays on device.</div>
+      </div>
+      <div class="guarantee">
+        <div class="guarantee-dot"></div>
+        <div class="guarantee-text"><strong>Graceful degradation.</strong> Works on devices without a vibrator. Haptic feedback silently skipped when unavailable.</div>
+      </div>
+      <div class="guarantee">
+        <div class="guarantee-dot"></div>
+        <div class="guarantee-text"><strong>Privacy-ready.</strong> Screenshot capture is opt-in. Disable globally for banking or healthcare apps with one config line.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CREATORS ── -->
+<div class="creators-section">
+  <div class="creators-inner">
+    <div class="creators-label">Built with ❤ for Android developers</div>
+    <div class="creators-names">
+      Crafted by<br>
+      <em>Ogundiji Tiwalope</em>
+    </div>
+    <div class="creators-handles">
+      <span class="creator-handle">@bzk9x</span>
+      <span class="creator-handle">com.bzk9x.shakefeedback</span>
+    </div>
+    <p class="creators-sub">
+      Questions? The code comments explain every layer in detail.
+      Contributions welcome — keep the four-layer separation intact.
+    </p>
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-logo">
+    <strong>ShakeFeedback</strong> · v1.0.0
+  </div>
+  <div class="footer-links">
+    <a href="#features">Features</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#code">Quick Start</a>
+    <a href="#performance">Performance</a>
+  </div>
+  <div class="footer-license">MIT License</div>
+</footer>
+
+<script>
+const layers = [
+  {
+    name: 'Hardware Acquisition',
+    cls: 'AccelerometerDataSource',
+    tag: '~60Hz polling',
+    items: [
+      'Continuous (x, y, z) acceleration vectors from device accelerometer',
+      'Raw sensor data with no processing or decisions made',
+      'Hardware abstraction — the only layer that touches SensorManager',
+      'Registers and unregisters automatically via Orchestration layer'
+    ]
+  },
+  {
+    name: 'Signal Processing',
+    cls: 'ShakeDetector',
+    tag: 'Mathematical pipeline',
+    items: [
+      'Magnitude calculation using Euclidean norm: √(x²+y²+z²)',
+      'Gravity isolation via high-pass filter to remove constant gravity vector',
+      'Noise reduction using exponential moving average (factor: 0.9)',
+      'Threshold crossing validation with configurable min crossings',
+      'Debounce logic prevents re-trigger during phone raise-to-face'
+    ]
+  },
+  {
+    name: 'Orchestration',
+    cls: 'ShakeFeedbackManager',
+    tag: 'Lifecycle-aware',
+    items: [
+      'Observes Activity or LifecycleOwner lifecycle automatically',
+      'Manages sensor binding and unbinding — zero background drain',
+      'Triggers configured haptic feedback pattern on shake detection',
+      'Captures screenshot and diagnostic logs asynchronously',
+      'Single source of truth for library state'
+    ]
+  },
+  {
+    name: 'Presentation',
+    cls: 'ShakeFeedbackCallback',
+    tag: 'Bring your own UI',
+    items: [
+      'Pure callback interface — no UI assumptions or dependencies',
+      'onShakeDetected() called with ShakeEvent (screenshot + logs)',
+      'onFeedbackSubmitted() receives FeedbackData to send to your server',
+      'Built-in ShakeFeedbackBottomSheet available as drop-in solution',
+      'Fully replaceable — implement any UI you want'
+    ]
+  }
+];
+
+function renderDetail(i) {
+  const l = layers[i];
+  document.getElementById('archDetail').innerHTML = `
+    <div class="arch-detail-title">${l.name}</div>
+    <div class="arch-detail-class">${l.cls}</div>
+    <ul class="arch-detail-features">
+      ${l.items.map(t => `<li>${t}</li>`).join('')}
+    </ul>
+    <span class="arch-tag">${l.tag}</span>
+  `;
+}
+renderDetail(0);
+
+document.querySelectorAll('.arch-step').forEach((step, i) => {
+  step.addEventListener('click', () => {
+    document.querySelectorAll('.arch-step').forEach(s => s.classList.remove('active'));
+    step.classList.add('active');
+    renderDetail(i);
+  });
+});
+
+const tabs = document.querySelectorAll('.code-tab');
+function switchTab(i) {
+  tabs.forEach((t,j) => {
+    t.classList.toggle('active', i === j);
+    document.getElementById('tab'+j).classList.toggle('active', i === j);
+  });
+}
+</script>
+</body>
+</html>
